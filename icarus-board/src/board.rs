@@ -34,7 +34,7 @@ pub struct Board {
     /// If a pawn can be taken en passant in the next move, its file is stored in here.
     pub(crate) en_passant: Option<EnPassantFile>,
     /// Bitboards containing all pieces pinned to their king, indexed by color.
-    pub(crate) pinned: [Bitboard; 2],
+    pub(crate) pinned: EnumMap<Color, Bitboard>,
     /// Bitboard containing all nstm pieces checking the stm king.
     pub(crate) checkers: Bitboard,
     /// Bitboard containing all squares attacked by a nstm piece.
@@ -121,7 +121,7 @@ impl Board {
 
     #[inline]
     pub fn pinned(&self, color: Color) -> Bitboard {
-        self.pinned[color.idx() as usize]
+        self.pinned[color]
     }
 
     #[inline]
@@ -314,7 +314,7 @@ impl Board {
             colors: Default::default(),
             castling_rights: Default::default(),
             en_passant: None,
-            pinned: [Bitboard::EMPTY; 2],
+            pinned: Default::default(),
             checkers: Bitboard::EMPTY,
             attacked: Bitboard::EMPTY,
             halfmove_clock: 0,
@@ -518,7 +518,7 @@ impl Board {
             colors: Default::default(),
             castling_rights: Default::default(),
             en_passant: None,
-            pinned: [Bitboard::EMPTY; 2],
+            pinned: Default::default(),
             checkers: Bitboard::EMPTY,
             attacked: Bitboard::EMPTY,
             halfmove_clock: 0,

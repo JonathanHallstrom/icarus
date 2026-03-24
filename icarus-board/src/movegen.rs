@@ -492,7 +492,7 @@ impl Board {
         let their_orth = self.orth_sliders(nstm);
         let their_diag = self.diag_sliders(nstm);
         self.checkers = Bitboard::EMPTY;
-        self.pinned = [Bitboard::EMPTY; 2];
+        self.pinned = Default::default();
         self.attacked =
             their_pawns.shift::<DownLeft>(push_dir) | their_pawns.shift::<DownRight>(push_dir);
         self.attacked |= king_moves(self.king(nstm));
@@ -523,14 +523,14 @@ impl Board {
 
         self.checkers |= pawn_attacks(our_king, self.stm) & their_pawns;
 
-        self.pinned[stm.idx() as usize] = calc_pinned(
+        self.pinned[stm] = calc_pinned(
             our_king,
             blockers,
             self.occupied_by(stm),
             their_orth,
             their_diag,
         );
-        self.pinned[nstm.idx() as usize] = calc_pinned(
+        self.pinned[nstm] = calc_pinned(
             self.king(nstm),
             blockers,
             self.occupied_by(nstm),
