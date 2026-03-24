@@ -4,7 +4,7 @@ use icarus_board::{
     r#move::{Move, MoveFlag},
 };
 use icarus_common::{
-    lookups::{king_moves, knight_moves, pawn_attacks},
+    lookups::{king_moves, knight_moves, line, pawn_attacks},
     piece::{Color, Piece},
     square::Square,
 };
@@ -120,6 +120,13 @@ impl Position {
 
         let orth = board.pieces(Piece::Rook) | board.pieces(Piece::Queen);
         let diag = board.pieces(Piece::Bishop) | board.pieces(Piece::Queen);
+        let black_pinned = board.pinned(Color::Black);
+        let white_pinned = board.pinned(Color::White);
+        let black_king_ray = line(board.king(Color::Black), to);
+        let white_king_ray = line(board.king(Color::White), to);
+        let allowed = !(black_pinned | white_pinned)
+            | (black_pinned & black_king_ray)
+            | (white_pinned & white_king_ray);
 
         let mut occupied = board.occupied() ^ from | to;
         if flag == MoveFlag::EnPassant {
@@ -134,7 +141,7 @@ impl Position {
             | (bishop_moves(to, occupied) & diag)
             | (rook_moves(to, occupied) & orth)
             | (king_moves(to) & board.pieces(Piece::King))
-        ) & occupied;
+        ) & occupied & allowed;
 
         let mut stm = !board.stm();
 
@@ -158,7 +165,7 @@ impl Position {
                 attackers |= rook_moves(to, occupied) & orth;
             }
 
-            attackers &= occupied;
+            attackers &= occupied & allowed;
             stm = !stm;
 
             balance = -balance - 1 - see_val(next_victim);

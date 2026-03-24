@@ -38,6 +38,7 @@ impl Board {
         };
 
         let our_king = self.king(self.stm);
+        let pinned = self.pinned(self.stm);
         let blockers = self.occupied();
         let targets = !self.occupied_by(self.stm);
 
@@ -54,7 +55,7 @@ impl Board {
         }
 
         // If we are pinned, and we leave the line along which we are pinned, it would always be a discovered check.
-        if self.pinned.contains(from) && !line(our_king, from).contains(to) {
+        if pinned.contains(from) && !line(our_king, from).contains(to) {
             return false;
         }
 
@@ -96,6 +97,7 @@ impl Board {
 
         let checker = self.checkers.next();
         let our_king = self.king(self.stm);
+        let pinned = self.pinned(self.stm);
         let targets = between(our_king, checker) | checker;
         let blockers = self.occupied();
 
@@ -114,7 +116,7 @@ impl Board {
         }
 
         // If we are pinned, and we leave the line along which we are pinned, it would always be a discovered check.
-        if self.pinned.contains(from) && !line(our_king, from).contains(to) {
+        if pinned.contains(from) && !line(our_king, from).contains(to) {
             return false;
         }
 
@@ -174,7 +176,7 @@ impl Board {
         // a rook of ours.
 
         // Only possible in chess960
-        if self.pinned.contains(to) {
+        if self.pinned(self.stm()).contains(to) {
             return false;
         }
 

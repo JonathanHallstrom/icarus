@@ -64,6 +64,7 @@ impl Board {
         let push_dir = stm.signum();
         let our_pawns = self.colored_pieces(Piece::Pawn, stm);
         let our_king = self.king(stm);
+        let pinned = self.pinned(stm);
 
         let capture_targets = targets & self.colors[!stm];
 
@@ -71,7 +72,7 @@ impl Board {
             // Up-left captures. Any pinned pawns that are not on the same
             // anti diagonal as the king may not make such captures.
 
-            let pinned_pawns = self.pinned & !Bitboard::anti_diag_for(our_king);
+            let pinned_pawns = pinned & !Bitboard::anti_diag_for(our_king);
 
             for from in capture_targets.shift::<DownRight>(push_dir) & our_pawns & !pinned_pawns {
                 let flag = if from.rank() == Rank::R7.relative_to(stm) {
@@ -93,7 +94,7 @@ impl Board {
             // Up-right captures. Any pinned pawns that are not on the same
             // main diagonal as the king may not make such captures.
 
-            let pinned_pawns = self.pinned & !Bitboard::main_diag_for(our_king);
+            let pinned_pawns = pinned & !Bitboard::main_diag_for(our_king);
 
             for from in capture_targets.shift::<DownLeft>(push_dir) & our_pawns & !pinned_pawns {
                 let flag = if from.rank() == Rank::R7.relative_to(stm) {
@@ -116,7 +117,7 @@ impl Board {
             let promo_push_targets =
                 Rank::R8.relative_to(stm).bitboard() & !self.colors[!stm] & targets;
 
-            for from in promo_push_targets.shift::<Down>(push_dir) & our_pawns & !self.pinned {
+            for from in promo_push_targets.shift::<Down>(push_dir) & our_pawns & !pinned {
                 abort_if!(visitor(PieceMoves::new(
                     MoveFlag::Promotion,
                     Piece::Pawn,
@@ -153,6 +154,7 @@ impl Board {
         let push_dir = stm.signum();
         let our_pawns = self.colored_pieces(Piece::Pawn, stm);
         let our_king = self.king(stm);
+        let pinned = self.pinned(stm);
 
         // We don't allow pushes to the 8th rank here, because they would have to promote,
         // and therefore not be quiet. And since pushes can't capture, we exclude the opponent's
@@ -160,7 +162,7 @@ impl Board {
         let push_targets = !Rank::R8.relative_to(stm).bitboard() & !self.occupied();
 
         // Any pinned pawns that are not on the same file as our king may not push.
-        let pinned_pawns = self.pinned & !our_king.file().bitboard();
+        let pinned_pawns = pinned & !our_king.file().bitboard();
 
         // Pawns that can be pushed one square. There are some false positives in here
         // (e.g. pushes that don't break a check) that are filtered out later.
@@ -199,7 +201,9 @@ impl Board {
         visitor: &mut V,
         targets: Bitboard,
     ) -> Abort {
-        for from in self.colored_pieces(Piece::Knight, self.stm) & !self.pinned {
+        let pinned = self.pinned(self.stm);
+
+        for from in self.colored_pieces(Piece::Knight, self.stm) & !pinned {
             let to = knight_moves(from) & targets;
             if to.is_non_empty() {
                 abort_if!(visitor(PieceMoves::new(
@@ -224,8 +228,9 @@ impl Board {
         let from = self.colors[self.stm] & sliders;
         let blockers = self.occupied();
         let our_king = self.king(self.stm);
+        let pinned = self.pinned(self.stm);
 
-        for unpinned in from & !self.pinned {
+        for unpinned in from & !pinned {
             let to = moves(unpinned, blockers) & targets;
             if to.is_non_empty() {
                 abort_if!(visitor(PieceMoves::new(
@@ -237,14 +242,14 @@ impl Board {
             }
         }
 
-        for pinned in from & self.pinned {
-            let ray = line(our_king, pinned);
-            let to = moves(pinned, blockers) & targets & ray;
+        for pinned_piece in from & pinned {
+            let ray = line(our_king, pinned_piece);
+            let to = moves(pinned_piece, blockers) & targets & ray;
             if to.is_non_empty() {
                 abort_if!(visitor(PieceMoves::new(
                     MoveFlag::None,
-                    self.piece_on(pinned).unwrap(),
-                    pinned,
+                    self.piece_on(pinned_piece).unwrap(),
+                    pinned_piece,
                     to,
                 )));
             }
@@ -288,6 +293,7 @@ impl Board {
         targets: Bitboard,
     ) -> Abort {
         let our_king = self.king(self.stm);
+        let pinned = self.pinned(self.stm);
 
         {
             // Regular king moves.
@@ -313,7 +319,7 @@ impl Board {
                     let rook_sq = Square::new(rook_file, rank);
 
                     // Only possible in Chess960
-                    if self.pinned.contains(rook_sq) {
+                    if pinned.contains(rook_sq) {
                         continue;
                     }
 
@@ -451,19 +457,47 @@ impl Board {
     /// Should be called after making a move, and after toggling `self.stm`.
     #[inline]
     pub(crate) fn calc_threats(&mut self) {
+        fn calc_pinned(
+            king: Square,
+            blockers: Bitboard,
+            own_pieces: Bitboard,
+            enemy_orth: Bitboard,
+            enemy_diag: Bitboard,
+        ) -> Bitboard {
+            let mut pinned = Bitboard::EMPTY;
+
+            for orth in rook_rays(king) & enemy_orth {
+                let between = between(orth, king) & blockers;
+                if between.popcnt() == 1 && (between & own_pieces).is_non_empty() {
+                    pinned |= between;
+                }
+            }
+
+            for diag in bishop_rays(king) & enemy_diag {
+                let between = between(diag, king) & blockers;
+                if between.popcnt() == 1 && (between & own_pieces).is_non_empty() {
+                    pinned |= between;
+                }
+            }
+
+            pinned
+        }
+
+        let stm = self.stm;
+        let nstm = !stm;
         let our_king = self.king(self.stm);
         let blockers = self.occupied();
         let push_dir = self.stm.signum();
-        let their_pawns = self.colored_pieces(Piece::Pawn, !self.stm);
-        let their_orth = self.orth_sliders(!self.stm);
-        let their_diag = self.diag_sliders(!self.stm);
+        let their_pawns = self.colored_pieces(Piece::Pawn, nstm);
+        let their_orth = self.orth_sliders(nstm);
+        let their_diag = self.diag_sliders(nstm);
         self.checkers = Bitboard::EMPTY;
-        self.pinned = Bitboard::EMPTY;
+        self.pinned = [Bitboard::EMPTY; 2];
         self.attacked =
             their_pawns.shift::<DownLeft>(push_dir) | their_pawns.shift::<DownRight>(push_dir);
-        self.attacked |= king_moves(self.king(!self.stm));
+        self.attacked |= king_moves(self.king(nstm));
 
-        for knight in self.colored_pieces(Piece::Knight, !self.stm) {
+        for knight in self.colored_pieces(Piece::Knight, nstm) {
             let moves = knight_moves(knight);
             if moves.contains(our_king) {
                 self.checkers |= knight;
@@ -489,21 +523,20 @@ impl Board {
 
         self.checkers |= pawn_attacks(our_king, self.stm) & their_pawns;
 
-        // We're done calculating `self.attacked` and `self.checkers`.
-        // Now we do `self.pinned`.
-        for orth in rook_rays(our_king) & their_orth {
-            let between = between(orth, our_king) & blockers;
-            if between.popcnt() == 1 {
-                self.pinned |= between;
-            }
-        }
-
-        for diag in bishop_rays(our_king) & their_diag {
-            let between = between(diag, our_king) & blockers;
-            if between.popcnt() == 1 {
-                self.pinned |= between;
-            }
-        }
+        self.pinned[stm.idx() as usize] = calc_pinned(
+            our_king,
+            blockers,
+            self.occupied_by(stm),
+            their_orth,
+            their_diag,
+        );
+        self.pinned[nstm.idx() as usize] = calc_pinned(
+            self.king(nstm),
+            blockers,
+            self.occupied_by(nstm),
+            self.orth_sliders(stm),
+            self.diag_sliders(stm),
+        );
     }
 
     /// Calcuates en-passant threats onto a nstm pawn that just double pushed on `file`.
