@@ -466,15 +466,8 @@ impl Board {
         ) -> Bitboard {
             let mut pinned = Bitboard::EMPTY;
 
-            for orth in rook_rays(king) & enemy_orth {
-                let between = between(orth, king) & blockers;
-                if between.popcnt() == 1 && (between & own_pieces).is_non_empty() {
-                    pinned |= between;
-                }
-            }
-
-            for diag in bishop_rays(king) & enemy_diag {
-                let between = between(diag, king) & blockers;
+            for potential_pinner in rook_rays(king) & enemy_orth | bishop_rays(king) & enemy_diag {
+                let between = between(potential_pinner, king) & blockers;
                 if between.popcnt() == 1 && (between & own_pieces).is_non_empty() {
                     pinned |= between;
                 }
