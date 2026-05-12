@@ -570,7 +570,7 @@ pub fn qsearch<Node: NodeType>(
         raw_eval = tt_entry
             .map(|e| e.eval)
             .unwrap_or_else(|| pos.eval(&mut thread.nnue, thread.mat_scaling));
-        static_eval = raw_eval + thread.history.corr(pos);
+        static_eval = Score::clamp_nomate(raw_eval.0.saturating_add(thread.history.corr(pos)));
 
         if static_eval >= beta {
             if static_eval.max(beta).is_win() {
