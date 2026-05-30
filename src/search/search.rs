@@ -425,7 +425,7 @@ pub fn search<Node: NodeType>(
                 lmr -= lmr_ttpv() * tt_pv as i32;
                 lmr -= lmr_check() * pos.board().checkers().is_non_empty() as i32;
                 lmr += lmr_cutnode() * cutnode as i32;
-                lmr -= DEPTH_SCALE * hist_lmr as i32;
+                lmr -= DEPTH_SCALE * hist_lmr;
             }
 
             let lmr_depth = (new_depth - lmr).max(DEPTH_SCALE).min(new_depth);
