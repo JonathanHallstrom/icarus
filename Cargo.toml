@@ -29,3 +29,6 @@ count-act = []
 count-nnz = []
 tune = []
 default = []
+
+[build-dependencies]
+built = { version = "0.8.1", features = ["git2"] }

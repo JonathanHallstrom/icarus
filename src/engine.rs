@@ -10,6 +10,7 @@ use rustyline::{Config, Editor, error::ReadlineError, history::MemHistory};
 use crate::search::params::{list_params, print_params_ob, valid_param_name};
 use crate::{
     bench::DEFAULT_BENCH_DEPTH,
+    built_info,
     datagen::genfens,
     nnue::network::Nnue,
     position::Position,
@@ -142,8 +143,19 @@ impl Engine {
     }
 
     fn uci(&self) {
-        let version = env!("CARGO_PKG_VERSION");
-        println!("id name Icarus {version}-dev");
+        let mut version = format!(
+            "{}.{}",
+            built_info::PKG_VERSION_MAJOR,
+            built_info::PKG_VERSION_MINOR
+        );
+        if option_env!("ICARUS_RELEASE").is_none() {
+            version.push_str(&format!(
+                "-dev {}",
+                built_info::GIT_COMMIT_HASH_SHORT.unwrap()
+            ));
+        }
+
+        println!("id name Icarus {version}");
         println!("id author Sp00ph");
         println!("option name UCI_Chess960 type check default false");
         println!("option name UseSoftNodes type check default false");

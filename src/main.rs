@@ -10,6 +10,9 @@ pub mod search;
 pub mod uci;
 pub mod util;
 pub mod wdl;
+pub mod built_info {
+   include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}
 
 fn main() -> anyhow::Result<()> {
     Engine::new().run()

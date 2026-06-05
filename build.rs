@@ -15,4 +15,5 @@ fn main() {
     }
 
     fs::copy(in_path, out_path).unwrap();
+    built::write_built_file().unwrap();
 }
