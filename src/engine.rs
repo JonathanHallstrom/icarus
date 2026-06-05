@@ -148,7 +148,7 @@ impl Engine {
             built_info::PKG_VERSION_MAJOR,
             built_info::PKG_VERSION_MINOR
         );
-        if option_env!("ICARUS_RELEASE").is_none() {
+        if option_env!("ICARUS_RELEASE") != Some("1") {
             version.push_str(&format!(
                 "-dev {}",
                 built_info::GIT_COMMIT_HASH_SHORT.unwrap()
