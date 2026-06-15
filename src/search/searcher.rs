@@ -166,7 +166,7 @@ impl Default for Searcher {
             time_manager: TimeManager::default(),
             nodes: Arc::new(AtomicU64::new(0)),
             num_searching: AtomicU32::new(0),
-            ttable: TTable::new(DEFAULT_TT_SIZE),
+            ttable: TTable::new(DEFAULT_TT_SIZE, 1),
         });
         let (mut tx, mut rx) = channel(1);
         let search_thread = thread::spawn({
@@ -239,7 +239,7 @@ impl Searcher {
 
     pub fn newgame(&mut self) {
         assert!(!self.is_running(), "Called `newgame()` while searching");
-        self.global_ctx.ttable.clear();
+        self.global_ctx.ttable.clear(self.search_threads.len());
         self.command_sender.send(ThreadCmd::NewGame);
     }
 
@@ -274,7 +274,7 @@ impl Searcher {
             time_manager: Default::default(),
             nodes: Default::default(),
             num_searching: Default::default(),
-            ttable: TTable::new(mb),
+            ttable: TTable::new(mb, self.search_threads.len()),
         });
         self.command_sender
             .send(ThreadCmd::SetGlobal(self.global_ctx.clone()));
@@ -352,11 +352,6 @@ pub fn id_loop(mut pos: Position, thread: &mut ThreadCtx, print: Print) -> Score
         }
 
         'asp_window: loop {
-            if best_score.is_mate() {
-                alpha = alpha.max(best_score - 1);
-                beta = beta.max(alpha + 1);
-            }
-
             let new_score = search::<Root>(
                 &mut pos,
                 (depth as i32) * DEPTH_SCALE,
