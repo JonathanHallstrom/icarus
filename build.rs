@@ -1,4 +1,4 @@
-use std::{env, fs};
+use std::{env, fs, process::Command};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -15,5 +15,22 @@ fn main() {
     }
 
     fs::copy(in_path, out_path).unwrap();
-    built::write_built_file().unwrap();
+    let version = env::var("CARGO_PKG_VERSION").unwrap();
+    let version = &version[..version.match_indices('.').nth(1).unwrap().0];
+    let dev_suffix = if env::var("ICARUS_RELEASE").is_ok_and(|s| s == "1") {
+        String::new()
+    } else {
+        let hash = if let Ok(out) = Command::new("git")
+            .args(["rev-parse", "--short", "@"])
+            .output()
+            && out.status.success()
+        {
+            String::from_utf8_lossy(&out.stdout).trim().to_owned()
+        } else {
+            String::new()
+        };
+        format!("-dev {hash}")
+    };
+
+    println!("cargo:rustc-env=ICARUS_VERSION={version}{dev_suffix}");
 }

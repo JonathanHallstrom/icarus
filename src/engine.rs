@@ -10,7 +10,6 @@ use rustyline::{Config, Editor, error::ReadlineError, history::MemHistory};
 use crate::search::params::{list_params, print_params_ob, valid_param_name};
 use crate::{
     bench::DEFAULT_BENCH_DEPTH,
-    built_info,
     datagen::genfens,
     nnue::network::Nnue,
     position::Position,
@@ -143,17 +142,7 @@ impl Engine {
     }
 
     fn uci(&self) {
-        let mut version = format!(
-            "{}.{}",
-            built_info::PKG_VERSION_MAJOR,
-            built_info::PKG_VERSION_MINOR
-        );
-        if option_env!("ICARUS_RELEASE") != Some("1") {
-            version.push_str(&format!(
-                "-dev {}",
-                built_info::GIT_COMMIT_HASH_SHORT.unwrap()
-            ));
-        }
+        let version = env!("ICARUS_VERSION");
 
         println!("id name Icarus {version}");
         println!("id author Sp00ph");

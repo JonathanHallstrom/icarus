@@ -24,7 +24,10 @@ bench: build-native
 run: build-native
     ./icarus{{ ext }}
 
+build-release arch suffix:
+    just build {{ arch }} icarus-{{ os() }}-{{ suffix }} 1
+
 build-x86-releases:
-    just build "x86-64" icarus-{{ os() }}-generic 1
-    just build "x86-64-v3" icarus-{{ os() }}-avx2 1
-    just build "znver5" icarus-{{ os() }}-avx512 1
+    just build-release "x86-64" generic
+    just build-release "x86-64-v3" avx2
+    just build-release "znver5" avx512
