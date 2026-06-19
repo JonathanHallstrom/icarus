@@ -27,7 +27,4 @@ run: build-native
 build-release arch suffix:
     just build {{ arch }} icarus-{{ os() }}-{{ suffix }} 1
 
-build-x86-releases:
-    just build-release "x86-64" generic
-    just build-release "x86-64-v3" avx2
-    just build-release "znver5" avx512
+build-x86-releases: (build-release "x86-64" "generic") (build-release "x86-64-v3" "avx2") (build-release "znver5" "avx512")

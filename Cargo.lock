@@ -277,7 +277,6 @@ dependencies = [
  "anyhow",
  "arrayvec",
  "atomic-wait",
- "cfg-if",
  "clap",
  "icarus-board",
  "icarus-common",
