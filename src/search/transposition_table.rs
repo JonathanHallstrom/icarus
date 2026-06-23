@@ -180,7 +180,7 @@ impl TTable {
             .len(len * size_of::<TTClusterMemory>())
             .map_anon()
             .unwrap();
-        #[cfg(unix)]
+        #[cfg(target_os = "linux")]
         mmap.advise(memmap2::Advice::HugePage).unwrap();
         assert!(mmap.as_ptr().cast::<TTClusterMemory>().is_aligned());
 
