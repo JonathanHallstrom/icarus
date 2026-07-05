@@ -1,0 +1,20 @@
+[
+    {
+        "command": "./icarus",
+        "name": "Icarus 1.1-dev ab12bb4",
+        "rating": "3700",
+        "restart": "on",
+        "options": [
+            {
+                "name": "Threads",
+                "value": "512"
+            },
+            {
+                "name": "Hash",
+                "value": "262144"
+            }
+        ],
+        "protocol": "uci",
+        "workingDirectory": "/home/tcec/Engines/Icarus"
+    }
+]
